@@ -6,9 +6,17 @@ import java.math.BigDecimal;
  * Запись из источника транзаций
  * // в нашем случае csv
  */
-public class SourceLine {
+public class SourceTransaction {
     private long pid;
     private BigDecimal pamount;
+
+    public SourceTransaction() {
+    }
+
+    public SourceTransaction(long pid, BigDecimal pamount) {
+        this.pid = pid;
+        this.pamount = pamount;
+    }
 
     public long getPid() {
         return pid;

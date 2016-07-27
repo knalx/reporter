@@ -1,31 +1,28 @@
 package com.knalx.dao;
 
 import au.com.bytecode.opencsv.CSVReader;
-import com.knalx.dao.SourceDAO;
-import com.knalx.model.SourceLine;
+import com.knalx.model.SourceTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.Optional;
 
 /**
  * Последовательно читает строчки из csv файла
  */
 @Component
-public class ScvDAO implements SourceDAO {
-    private Logger logger = LoggerFactory.getLogger(ScvDAO.class);
+public class ScvTransSourceDAO implements TransactionSourceDAO {
+    private Logger logger = LoggerFactory.getLogger(ScvTransSourceDAO.class);
     private CSVReader csvReader;
     private long recordsCount;
 
@@ -43,15 +40,15 @@ public class ScvDAO implements SourceDAO {
      * // если в этот файл постоянно пишут - этот подход не сработает - необходимо дописывать
      */
     @Override
-    public SourceLine readNextLine() {
-        if (csvReader == null) {
-            this.init();
-        }
+    public Optional<SourceTransaction> readNextLine() {
         try {
+            if (csvReader == null) {
+                this.init();
+            }
             String[] nextLine;
             nextLine = csvReader.readNext();
             if (nextLine == null || nextLine.length == 0) {
-                return null;
+                return Optional.empty();
             } else if (nextLine[0].equals("PID")) {
                 //если считали заголовок
                 nextLine = csvReader.readNext();
@@ -64,45 +61,43 @@ public class ScvDAO implements SourceDAO {
                     logger.debug("Finished File reading. Correct count of read records");
                 }
                 this.destroy();
-                return null;
+                return Optional.empty();
             }
             recordsCount++;
             return buildSourceLine(nextLine);
         } catch (IOException e) {
             logger.error("reader reader error", e);
         }
-        return null;
+        return Optional.empty();
     }
 
-    private SourceLine buildSourceLine(String[] line) {
+    private Optional<SourceTransaction> buildSourceLine(String[] line) {
         if (line != null && line.length > 0) {
-            SourceLine result = new SourceLine();
+            SourceTransaction result = new SourceTransaction();
             result.setPid(Long.valueOf(line[0]));
             result.setPamount(BigDecimal.valueOf(Double.valueOf(line[1])));
-            return result;
+            return Optional.of(result);
         } else {
-            return null;
+            return Optional.empty();
         }
 
     }
 
-    public void init() {
+    public void init() throws IOException {
         recordsCount = 0;
-        try {
-            Resource resource = resourceLoader.getResource(csvFilePath);
-            File file = resource.getFile();
-            csvReader = new CSVReader(new FileReader(file), ';');
-        } catch (IOException e) {
-            logger.error("Init reader error", e);
-        }
+        Resource resource = resourceLoader.getResource(csvFilePath);
+        File file = resource.getFile();
+        csvReader = new CSVReader(new FileReader(file), ';');
 
     }
 
     @PreDestroy
     public void destroy() {
         try {
-            this.csvReader.close();
-            this.csvReader = null;
+            if(this.csvReader!=null) {
+                this.csvReader.close();
+                this.csvReader = null;
+            }
         } catch (IOException e) {
             logger.error("Destroy reader error", e);
         }

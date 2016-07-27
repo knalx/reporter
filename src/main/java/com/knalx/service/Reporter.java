@@ -1,20 +1,17 @@
 package com.knalx.service;
 
-import com.knalx.dao.ReportWriter;
-import com.knalx.dao.ScvDAO;
-import com.knalx.dao.SourceDAO;
+import com.knalx.dao.TransactionSourceDAO;
 import com.knalx.dao.TransactionsDao;
-import com.knalx.model.ReportLine;
-import com.knalx.model.SourceLine;
+import com.knalx.model.ReportRecord;
+import com.knalx.model.SourceTransaction;
+import com.knalx.model.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.util.Optional;
 
 /**
  * Сверяет данные в базе с транзациями с данными из источника
@@ -23,45 +20,57 @@ import java.io.IOException;
 public class Reporter {
 
     @Autowired
-    private SourceDAO csvDAO;
+    private TransactionSourceDAO scvTransSourceDAO;
 
-//    @Autowired
-//    private TransactionsDao transactionsDAO;
+    @Autowired
+    private TransactionsDao transactionsDAO;
 
     @Autowired
     private ReportWriter reportWriter;
 
     private Logger logger = LoggerFactory.getLogger(Reporter.class);
 
-    @PostConstruct
-    public void init() {
-
-    }
-
-    @Scheduled(cron = "*/10 * * * * *")// каждые 10 секунду
-//    @Scheduled(cron="0 * * * * *") //каждую минуту
+    /**
+     * Построить отчет о сверке транзакий из источника
+     */
     public void buildReport() {
-        logger.info("Start report building");
-
-        SourceLine sourceLine = csvDAO.readNextLine();
-        while (sourceLine != null) {
-            logger.info(String.valueOf(sourceLine.getPid()), sourceLine.getPamount().toString());
-            sourceLine = csvDAO.readNextLine();
-            if (sourceLine != null) {
-                ReportLine reportLine = new ReportLine();
-                reportLine.setId(sourceLine.getPid());
-                try {
-                    reportWriter.writeObjectToFile();
-                } catch (IOException e) {
-                    logger.error("error", e);
-                }
-            }
+        Optional<SourceTransaction> sourceTransaction;
+        while ((sourceTransaction = scvTransSourceDAO.readNextLine()).isPresent()) {
             try {
-                reportWriter.destroy();
+                reportWriter.writeObjectToFile(
+                        buildReportRecord(
+                                sourceTransaction.get(),
+                                transactionsDAO.getTransactionById(sourceTransaction.get().getPid())
+                        )
+                );
+
             } catch (IOException e) {
-                logger.error("error while file writing", e);
+                logger.error("Error while report creating writing", e);
             }
         }
-        logger.info("Finish report building");
+        try {
+            reportWriter.destroy();
+            logger.info("Finished report building");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public ReportRecord buildReportRecord(SourceTransaction source, Optional<Transaction> transFromDb) {
+        ReportRecord reportRecord = new ReportRecord();
+        reportRecord.setId(source.getPid());
+        if(transFromDb.isPresent()) {
+            if(transFromDb.get().getAmount().equals(source.getPamount())) {
+                reportRecord.setCheckStatus(ReportRecord.CheckStatus.OK);
+                reportRecord.setInfo("Correct");
+            } else {
+                reportRecord.setCheckStatus(ReportRecord.CheckStatus.ERROR);
+                reportRecord.setInfo("Wrong amount: " + source.getPamount() + ", in DB : " + transFromDb.get().getAmount());
+            }
+        } else {
+            reportRecord.setCheckStatus(ReportRecord.CheckStatus.NOT_FOUND);
+            reportRecord.setInfo("No transaction with this Id in DB");
+        }
+        return reportRecord;
     }
 }

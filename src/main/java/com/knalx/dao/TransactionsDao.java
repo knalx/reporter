@@ -10,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * База данных с транзакицями
@@ -26,18 +27,19 @@ public class TransactionsDao {
     /**
      * Просто вытягиваем транзацию по ее количество
      * Не тянем json - он нам в данном случае не нужен
+     *
      * @param id - идентификатор транзакции
      */
-    public void getTransactionById(Long id) {
-        Transaction transactions = jdbcTemplate.queryForObject(
+    public Optional<Transaction> getTransactionById(Long id) {
+        Optional<Transaction> transaction = Optional.ofNullable(jdbcTemplate.queryForObject(
                 "select id, amount from transactions where id = ?",
                 new Object[]{id},
                 (rs, rowNum) -> {
-                    Transaction transaction = new Transaction();
-                    transaction.setId(rs.getInt("id"));
-                    transaction.setAmount(rs.getBigDecimal("amount"));
-                    return transaction;
-                });
-        System.out.println(transactions.getAmount());
+                    Transaction trans = new Transaction();
+                    trans.setId(rs.getInt("id"));
+                    trans.setAmount(rs.getBigDecimal("amount"));
+                    return trans;
+                }));
+        return transaction;
     }
 }

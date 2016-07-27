@@ -3,12 +3,20 @@ package com.knalx.model;
 import java.math.BigDecimal;
 
 /**
+ * Json данные не мапим - они нам не интересны
  * Created by knalx on 25.07.16.
  */
 public class Transaction {
     private Integer id;
     private BigDecimal amount;
-    private String data;
+
+    public Transaction() {
+    }
+
+    public Transaction(Integer id, BigDecimal amount) {
+        this.id = id;
+        this.amount = amount;
+    }
 
     public Integer getId() {
         return id;
@@ -26,11 +34,5 @@ public class Transaction {
         this.amount = amount;
     }
 
-    public String getData() {
-        return data;
-    }
 
-    public void setData(String data) {
-        this.data = data;
-    }
 }

@@ -1,12 +1,14 @@
 package com.knalx.model;
 
 /**
+ * Строка в файле с отчетом
+ *
  * Created by knalx on 25.07.16.
  */
-public class ReportLine {
+public class ReportRecord {
     private Long id;
     private CheckStatus checkStatus;
-    private String errorMsg;
+    private String info;
 
     public CheckStatus getCheckStatus() {
         return checkStatus;
@@ -16,12 +18,12 @@ public class ReportLine {
         this.checkStatus = checkStatus;
     }
 
-    public String getErrorMsg() {
-        return errorMsg;
+    public String getInfo() {
+        return info;
     }
 
-    public void setErrorMsg(String errorMsg) {
-        this.errorMsg = errorMsg;
+    public void setInfo(String info) {
+        this.info = info;
     }
 
     public Long getId() {

@@ -14,6 +14,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 import java.util.logging.FileHandler;
 
 /**
@@ -43,14 +44,13 @@ public class ReportWriter {
     }
 
     /**
-     * Возвращает строковое представленеи текущего времени
-     * // Предполгаем что в 1 секунду не будет более 1 отчета и они не перетрутся при записи.
-     * // не заморачиваемся с часовым поисом
+     * Возвращает строковое представленеи текущего времени + uuid
+     * //uuid дает уникальность наименования файла в рамках 10 секунд.
      */
     private String getCurrentTimeString() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd_HH:mm:ss");
         LocalDateTime dateTime = LocalDateTime.now();
-        return "_" + dateTime.format(formatter);
+        return "_" + dateTime.format(formatter) + "_" + UUID.randomUUID().toString().substring(0,4);
     }
 
     private void init() throws IOException {

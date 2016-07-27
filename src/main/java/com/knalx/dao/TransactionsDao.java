@@ -2,6 +2,7 @@ package com.knalx.dao;
 
 import com.knalx.model.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
@@ -31,7 +32,7 @@ public class TransactionsDao {
      * @param id - идентификатор транзакции
      */
     public Optional<Transaction> getTransactionById(Long id) {
-        Optional<Transaction> transaction = Optional.ofNullable(jdbcTemplate.queryForObject(
+        List<Transaction> queryResult = jdbcTemplate.query(
                 "select id, amount from transactions where id = ?",
                 new Object[]{id},
                 (rs, rowNum) -> {
@@ -39,7 +40,10 @@ public class TransactionsDao {
                     trans.setId(rs.getInt("id"));
                     trans.setAmount(rs.getBigDecimal("amount"));
                     return trans;
-                }));
-        return transaction;
+                });
+        if (!queryResult.isEmpty()) {
+            return Optional.of(queryResult.get(0));
+        }
+        return Optional.empty();
     }
 }
